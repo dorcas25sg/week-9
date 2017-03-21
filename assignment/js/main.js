@@ -60,7 +60,7 @@ var state = {
   marker1: undefined,
   marker2: undefined,
   line: undefined,
-}
+};
 
 /** ---------------
 Map configuration
@@ -109,7 +109,8 @@ var resetApplication = function() {
   map.removeLayer(state.line);
   state.line = undefined;
   $('#button-reset').hide();
-}
+    $('.leaflet-draw').show();
+};
 
 $('#button-reset').click(resetApplication);
 
@@ -124,5 +125,48 @@ map.on('draw:created', function (e) {
   var layer = e.layer; // The Leaflet layer for the shape
   var id = L.stamp(layer); // The unique Leaflet ID for the
 
-  console.log('Do something with the layer you just created', layer, layer._latlng);
+  state.count++; //i++ per click
+  console.log(state.count);
+
+  if (state.count===1) {
+    state.marker1 = layer.addTo(map);
+    console.log(state.marker1._latlng.lat, state.marker1._latlng.lng);
+  } else if (state.count===2) {
+    state.marker2 = layer.addTo(map);
+    console.log(state.marker2._latlng.lat, state.marker2._latlng.lng);
+
+      var routing = {
+        "locations":[{"lat":state.marker1._latlng.lat,"lon":state.marker1._latlng.lng},
+        {"lat":state.marker2._latlng.lat,"lon":state.marker2._latlng.lng}],
+        "costing":"auto", "directions_options":{"units":"miles"}};
+
+      var routeString = JSON.stringify(routing);
+      console.log(routeString);
+
+      var optiResult = "https://matrix.mapzen.com/optimized_route?json=" + routeString + "&api_key=mapzen-RbHXgXe";
+      console.log(optiResult);
+
+      $.ajax(optiResult).done(function(data){
+        var routePoints = decode(data.trip.legs[0].shape);
+        var decodedData = decode(data.trip.legs[0].shape);
+        console.log(decodedData);
+
+        //Might need to reverse order of coordinates for Leaflet. In this case, not necessary.
+        var coordinates = _.map(decodedData, function(d) {
+          return ([d[0], d[1]]);
+        });
+
+        // Use Leaflet's polyline function to create a layer out of an array of coordinates. Add it to the map.
+        var myRoute = L.polyline(coordinates, {color: 'tomato'});
+        state.line = myRoute.addTo(map);
+        console.log(state.line);
+        });
+
+      $('#button-reset').show();
+      $('.leaflet-draw').hide();
+
+  } else {
+    console.log("This should not be happening!");
+  }
+
 });
