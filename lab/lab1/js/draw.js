@@ -73,6 +73,14 @@ Moving your mouse outside of the circle should remove the highlighting.
 
 var myRectangle;
 
+//var demoShapes = [];
+
+//demoShapes.push(layer.addTo(map));
+
+//_.each(demoShapes, function(shape){
+//  map.removeLayer(shape);
+//});
+
 // Initialize Leaflet Draw
 
 var drawControl = new L.Control.Draw({
@@ -94,6 +102,18 @@ map.on('draw:created', function (e) {
     var layer = e.layer; // The Leaflet layer for the shape
     var id = L.stamp(layer); // The unique Leaflet ID for the layer
 
+    //Task 3
+    //clear map of layers, except for base map
+    map.eachLayer(function (layer) {
+         if (layer == myRectangle) {
+           map.removeLayer(layer);
+         }});
 
+    myRectangle = layer.addTo(map);
+
+    //Task 4
+    var newID = "<div id="+id+"><h1>Current ID: "+id+"</h1></div>";
+    $( "#shapes" ).empty(); //clears the container
+    $( "#shapes" ).append(newID); //adds html to the html (think 'html-ception')
 
 });

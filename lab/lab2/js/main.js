@@ -142,16 +142,29 @@ var updatePosition = function(lat, lng, updated) {
   goToOrigin(lat, lng);
 };
 
+//Global variables
+var searchResult1;
+var searchResult2;
+var featureGroup;
+var coordArray = [];
+var firstSearch;
+var coordString;
+var optiResult;
+var optiString;
+var decodedData;
+var coordinates;
+var myRoute;
+
 $(document).ready(function() {
   /* This 'if' check allows us to safely ask for the user's current position */
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(function(position) {
       updatePosition(position.coords.latitude, position.coords.longitude, position.timestamp);
+      coordArray.push({"lat":position.coords.latitude, "lon":position.coords.longitude});
     });
   } else {
     alert("Unable to access geolocation API!");
   }
-
 
   /* Every time a key is lifted while typing in the #dest input, disable
    * the #calculate button if no text is in the input
@@ -166,10 +179,39 @@ $(document).ready(function() {
 
   // click handler for the "calculate" button (probably you want to do something with this)
   $("#calculate").click(function(e) {
-    var dest = $('#dest').val();
-    console.log(dest);
+
+    var c = $('#dest').val(); //get input
+    searchResult1 = "http://search.mapzen.com/v1/search?api_key=mapzen-RbHXgXe&text=" + c +"&boundary.rect.min_lat=39.8670043945&boundary.rect.min_lon=-75.2802810669&boundary.rect.max_lat=40.1379623413&boundary.rect.max_lon=-74.9558258057"; //do a search based on input within bounding box of philly
+    searchResult2 = searchResult1.replace(/ /g,"%20"); //replaces spaces in input with %20 - just a convention for it to work
+    console.log(searchResult2); //the link
+    $.ajax(searchResult2).done(function(data) {
+      //featureGroup = L.geoJson(data).addTo(map);
+      featureGroup = L.geoJson(data,{
+          onEachFeature: function (feature, layer) {
+            coordArray.push({"lat":layer._latlng.lat, "lon":layer._latlng.lng});
+          }}).addTo(map); //I'm adding all the points to the map to show that it only automatically swill route only to the first search result
+
+    console.log(coordArray);
+    firstSearch = [coordArray[0],coordArray[1]]; //in this case I am assuming the first search result is always what we want, although we can just edit the number 1 to any other digit that makes sense since coordArray keeps a record of every search result
+    coordString = JSON.stringify(firstSearch);
+
+    optiResult = 'https://matrix.mapzen.com/optimized_route?json={"locations":' + coordString + ',"costing":"auto","directions_options":{"units":"miles"}}&api_key=mapzen-RbHXgXe';
+    console.log(optiResult);
+
+    $.ajax(optiResult).done(function(data1) {
+      console.log(data1.trip.legs[0].shape);
+      decodedData = decode(data1.trip.legs[0].shape);
+      console.log(decodedData);
+
+      // Might need to reverse order of coordinates for Leaflet. In this case, not necessary.
+      coordinates = _.map(decodedData, function(d) {
+        return ([d[0], d[1]]);
+      });
+
+      // Use Leaflet's polyline function to create a layer out of an array of coordinates. Add it to the map.
+      myRoute = L.polyline(coordinates, {color: 'tomato'}).addTo(map);
+    });
+
+    });
   });
-
 });
-
-
